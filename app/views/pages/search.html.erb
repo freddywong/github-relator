@@ -1,0 +1,88 @@
+<div class="col-md-6 col-md-offset-3">
+  <form>
+    <fieldset class="form-group">
+      <label for="formGroupExampleInput">Search 1st User</label>
+      <input type="text" class="form-control" id="search-first-user" placeholder="input name">
+    </fieldset>
+    <fieldset class="form-group">
+      <label for="formGroupExampleInput">Search 2nd User</label>
+      <input type="text" class="form-control" id="search-second-user" placeholder="input name">
+    </fieldset>
+    <fieldset class="form-group">
+      <label for="formGroupExampleInput">Search Code</label>
+      <input type="text" class="form-control" id="search-code" placeholder="input name">
+    </fieldset>
+    <input id="search-button" type="submit" value="Submit">
+  </form>
+  <div class="users">
+
+  </div>
+</div>
+
+
+<script>
+  $( document ).ready(function() {
+    // var results = [];
+    // // Search Input:
+    // $( "#search-users" ).keypress(function() {
+    //   var searchInput = $("#search-users").val();
+    //   $.get( "https://api.github.com/search/users?q=" + searchInput + "&sort=followers" , function( data ) {
+
+    //     // get the number of followers for each user
+    //     var fiveItems = data.items.slice(0,4);
+    //     fiveItems.forEach(function(item) { 
+    //       var followersUrl = item.followers_url;
+    //       var followersCount;
+    //       $.get( followersUrl, function( data ) {
+    //         followersCount = Object.keys(data).length;  
+    //       });
+    //       result = { username: item.login, follower_count: followersCount }
+    //     });
+    //   });      
+    // });
+
+    
+    $( "#search-button" ).click(function() {
+      var searchFirstUser = $("#search-users").val();
+      var searchCode = $("#search-code").val();
+
+      $.get( "https://api.github.com/search/code?q=" + searchCode + "+user:" + searchRepo, function( data ) {
+        var committers = [];
+        var results = data.items;  
+        var resultsCount = 0
+
+        results.forEach(function(result){
+          var commitUrl = result.repository.git_commits_url;
+          commitUrl = commitUrl.substr(0, commitUrl.length-6) + "/" + result.sha;
+          
+          $.get( commitUrl, function( data ) {
+            
+            committers.push(data.committer.name);
+            if (committers.length > 0) {
+              debugger;
+            }
+          })
+            // .done(function() {
+            //   resultsCount += 1;
+            //   debugger;
+            //   if (resultsCount === results.length) {
+            //     debugger;
+            //     committersConstructor(committers);
+            //   }
+            // })
+            // .fail(function() {
+            //   console.log("No commit results")
+            // });
+        });
+        
+        // debugger;
+        // $( ".users" ).html( followerCount );
+      });
+
+      function committersConstructor(committers) {
+        var committersCodeCount = {};
+        committers.forEach(function(i) { committersCodeCount[i] = (committersCodeCount[i]||0)+1;  });
+      }      
+    });
+  });
+</script>
