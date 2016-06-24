@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   get 'pages/search' => 'pages#search'
   
   get "/auth/:provider/callback" => "sessions#create"
+  get "/retrieve-access-token" => "sessions#retrieve_access_token"
   get "/signout" => "sessions#destroy", :as => :signout
 
   # Example of named route that can be invoked with purchase_url(id: product.id)
