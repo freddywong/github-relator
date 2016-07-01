@@ -1,197 +1,60 @@
-<div class="row">
-  <div class="col-md-6 col-md-offset-3">
-    <form data-remote="true">
-      <fieldset class="form-group">
-        <label for="formGroupExampleInput">Search User</label>
-        <input type="text" class="form-control" id="search-user" placeholder="input name">
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <%= link_to root_path do %>
+        <%= image_tag("pie.gif", class:"navbar-brand") %> <span class="navbar-brand">Github Rela-tor</span>
+      <% end %>
+    </div>
+    <ul class="nav navbar-nav navbar-right">
+      <li><%= link_to "Sign out", "/signout", class:"btn btn-default" %></li>
+    </ul>
+  </div>
+</nav>
+<div class="row padding-top-30" id="search">
+  <form data-remote="true">
+    <div class="row center-text">
+      <fieldset class="form-group col-md-2 col-md-offset-4">
+        <label for="formGroupExampleInput">Search Github Username</label>
+        <input type="text" class="form-control" id="search-user" placeholder="e.g. vitalbone">
       </fieldset>
-      <fieldset class="form-group">
+      <fieldset class="form-group col-md-2">
         <label for="formGroupExampleInput">Search Code</label>
-        <input type="text" class="form-control" id="search-code" placeholder="input name">
+        <input type="text" class="form-control" id="search-code" placeholder="e.g. debugger">
       </fieldset>
-      <input id="search-button" type="submit" value="Submit">
-    </form>
-  </div>
+    </div>
+    <div class="row center-text">
+      <input class="btn btn-default btn-lg" id="search-button" type="submit" value="Submit">
+    </div>     
+  </form>
 </div>
 
-<div class="row">
-  <div class="col-md-2 col-md-offset-3">
-    <p id="odometer" class="odometer" style="font-size:100px;">0</p>
+<div class="row padding-top-30" id="results">
+  <div id="your-code" class="col-md-2 col-md-offset-3 center-text top-border">
+    <h3>Your Code</h3>
+    <p class="light-grey">Number of times this code appears in <i><strong>your code</strong></i></p>
+    <p id="odometer" class="odometer padding-top-10">0</p>
   </div>
-  <div class="col-md-4">
-    <canvas id="doughnutChart" width="400" height="400"></canvas>
+  <div id="your-repo" class="col-md-4 left-border center-text top-border">
+    <h3>Your Repos</h3>
+    <p class="light-grey">Number of times this code appears in <i><strong>your repos</strong></i></p>
+    <%= image_tag('pie.gif', id:"loading-pie-repos") %>
+    <canvas class="padding-top-10" id="repoDoughnutChart" width="400" height="400"></canvas>
   </div>
+  <div id="your-followers" class="col-md-6 col-md-offset-3 center-text top-border padding-top-10">
+    <h3>Your Followers</h3>
+    <p class="light-grey">Number of times this code appears in <i><strong>your followers</strong></i></p>
+    <%= image_tag('pie.gif', id:"loading-pie-followers") %>
+    <canvas class="padding-top-10" id="followerBarChart" width="400" height="400"></canvas>
+  </div>
+
 </div>
 
-<script>
-  $( document ).ready(function() {
+<div id="timer-box" class="center-text row">
+  <div class="col-md-2 col-md-offset-5">
+    <p class="light-grey">Your results will be ready in...</p>
+    <div id="timer">1:00</div>
+    <p class="light-grey">You have reached your <strong>Github Search API limit :(</strong></p>
 
-    // 1. search code for word with user and code and get the number of times the word pops up for user
-    // 2. this will also return the repos
-    // 3. search code for word in each repo and get each sha
-    // 4. search commit with sha and get user name
-    // 5. count each time the user name pops up. Return the number of times for each user.
-
-    $( "#search-button" ).click(function() {
-      var searchUser = $("#search-user").val();
-      var searchCode = $("#search-code").val();
-      var repoNames = [];
-      var userCodeCount;
-      var commitUrls = [];
-      var usernames = [];
-      var accessToken;
-
-      $.get( "/retrieve-access-token",  function(data){
-        setAccessToken(data);
-      }).done(function(){
-        startCodeSearch();
-      });
-
-      function setAccessToken(data) {
-        accessToken = data;
-      }
-      
-
-      function startCodeSearch() {
-        $.get( "https://api.github.com/search/code?q=" + searchCode + "+user:" + searchUser + "&access_token=" + accessToken + "&per_page=100" , function( data ) {
-          debugger;
-          var results = data.items;
-
-          userCodeCountConstructor(data.total_count);
-
-          results.forEach(function(result){
-            var repoName = result.repository.full_name;
-            repoNamesConstructor(repoName);
-          });
-
-        }).done(function(){
-          if (repoNames.length > 0) {
-            repoNames = repoNames.filter( onlyUnique ); 
-            searchCodeInRepos();
-          }
-        });
-
-      }
-
-      var searchCodeInRepos = function(i) {
-        // debugger;
-        var repoOrder = i || 0;
-        
-        if(repoOrder < repoNames.length) {
-          $.get( "https://api.github.com/search/code?q=" + searchCode + "+repo:" + repoNames[repoOrder] + "&access_token=" + accessToken, function(data){  
-
-            constructCommitUrls(data);
-            searchCodeInRepos(repoOrder+1);
-          });
-        } else {
-          searchUsernames();
-        }
-      }
-
-      var searchUsernames = function(i) {
-        var commitOrder = i || 0;
-        if (commitOrder < commitUrls.length) {
-          $.get( commitUrls[commitOrder], function(data){   
-            constructUsernames(data);
-            searchUsernames(commitOrder+1);
-          });
-
-        } else {
-          // console.log(usernames);
-          createChartData(searchUser, userCodeCount, usernames)
-        }
-        
-      }
-
-      function createChartData(searchUser, userCodeCount, usernames){
-        animateCodeCount(userCodeCount);
-        var usernamesHash = { };
-        for (var i = 0, j = usernames.length; i < j; i++) {
-          usernamesHash[usernames[i]] = (usernamesHash[usernames[i]] || 0) + 1;
-        }
-
-        var labels = [];
-        var data = [];
-        for (var key in usernamesHash) {
-          labels.push(key);
-          data.push(usernamesHash[key]);
-        }
-        // debugger;
-    
-        var colors = []
-        $.each(data, function( index, value ) {
-          colors.push(getRandomColor());
-        });
-
-        var chartData = {
-          labels: labels,
-          datasets: [
-            {
-              data: data,
-              backgroundColor: colors,
-              hoverBackgroundColor: colors
-            }
-          ]
-        };
-
-        var ctx = document.getElementById("doughnutChart");
-        var doughnutChart = new Chart(ctx, {
-          type: 'doughnut',
-          data: chartData
-        });        
-      }
-
-      function getRandomColor() {
-        var letters = '0123456789ABCDEF'.split('');
-        var color = '#';
-        for (var i = 0; i < 6; i++ ) {
-            color += letters[Math.floor(Math.random() * 16)];
-        }
-        return color;
-      }
-
-      function constructUsernames(data) {
-        var username = data.committer.login;
-        usernames.push(username);
-      }
-
-      function constructCommitUrls(data) {
-        data.items.forEach(function(item){
-          var url = item.url;
-          var owner = item.repository.owner.login;
-          var repoName = item.repository.name;
-          var sha = url.substring(url.indexOf("ref=") + 4);
-          commitUrl = "https://api.github.com/repos/" + owner + "/" + repoName + "/commits/" + sha + "?access_token=" + accessToken;
-          commitUrls.push(commitUrl);
-        });
-        
-      }
-
-      function userCodeCountConstructor(total_count) {
-        userCodeCount = total_count;
-      }
-
-      function animateCodeCount(userCodeCount) {
-        setTimeout(function(){
-            odometer.innerHTML = userCodeCount;
-        }, 1000);
-      }
-
-      function repoNamesConstructor(repoName) {
-        repoNames.push(repoName);
-      }  
-      
-
-      function committersConstructor(committers) {
-        var committersCodeCount = {};
-        committers.forEach(function(i) { committersCodeCount[i] = (committersCodeCount[i]||0)+1;  });
-      }
-
-      function onlyUnique(value, index, self) { 
-        return self.indexOf(value) === index;
-      }
-
-     
-    });
-  });
-</script>
+    <%= image_tag('dancing-man.gif', id:"dancing-man", class:"margin-top-20", size:"120") %>
+  </div>
+</div>
