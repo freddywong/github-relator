@@ -1,3 +1,19 @@
 // Place all the styles related to the pages controller here.
 // They will automatically be included in application.css.
 // You can use Sass (SCSS) here: http://sass-lang.com/
+
+#timer-box {
+  display: none;
+}
+
+#timer, .odometer {
+  font-size:100px;
+}
+
+.welcome {
+  font-size:30px;
+}
+
+#loading-pie-repos, #loading-pie-followers {
+  display:none;
+}
